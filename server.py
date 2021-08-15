@@ -95,7 +95,23 @@ def getmask():
     textlines, mask=t.detect(img_rgb)
     mask = t.gen_mask(img_rgb, mask, textlines)
     cv2.imwrite(mask_path, mask)
+    convert_mask(mask_path)
     return static_file(savedName+"-mask.png", root='uploaded')  
+def convert_mask(mask_path):
+    img = cv2.imread(mask_path)
+    b,g,r = cv2.split(img)
+    a = np.ones(b.shape, dtype=b.dtype) * 255
+    for x in range(0,img.shape[1]-1):
+        for y in range(0,img.shape[0]-1):
+            pixel = img[y][x]
+            if pixel[0]==0 and pixel[1]==0 and pixel[2]==0:
+                a[y][x] = 0
+            else:
+                b[y][x] = 0
+                g[y][x] = 0
+                r[y][x] = 255
+    img_BGRA = cv2.merge((b, g, r, a))
+    cv2.imwrite(mask_path,img_BGRA)
     
 @route('/gettxtremoved', method='POST')
 def get_txtremoved():
@@ -125,7 +141,8 @@ def get_txtremoved():
     img = cv2.imread(origin_path)
     mask_img = cv2.imread(mask_path)
     gray=cv2.cvtColor(mask_img,cv2.COLOR_BGR2GRAY)
-    inpainted = t.inpaint(img, gray)
+    thresh = cv2.threshold(gray, 60, 255, cv2.THRESH_BINARY)[1]
+    inpainted = t.inpaint(img, thresh)
     cv2.imwrite(output_path, inpainted)
     return static_file(ouputName, root='uploaded')
 
