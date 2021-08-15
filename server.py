@@ -141,8 +141,8 @@ def convert_mask(mask_path):
     img = cv2.imread(mask_path)
     b,g,r = cv2.split(img)
     a = np.ones(b.shape, dtype=b.dtype) * 255
-    for x in range(0,img.shape[1]-1):
-        for y in range(0,img.shape[0]-1):
+    for x in range(0,img.shape[1]):
+        for y in range(0,img.shape[0]):
             pixel = img[y][x]
             if pixel[0]==0 and pixel[1]==0 and pixel[2]==0:
                 a[y][x] = 0

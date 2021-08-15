@@ -205,7 +205,7 @@ class Translator():
         mask_resized = cv2.resize(mask_resized, (img.shape[1] // 2, img.shape[0] // 2), interpolation = cv2.INTER_LINEAR)
         img_resized_2 = cv2.resize(img, (img.shape[1] // 2, img.shape[0] // 2), interpolation = cv2.INTER_LINEAR)
         mask_resized[mask_resized > 150] = 255
-        cv2.imwrite('mask-resized.png', mask_resized)
+        #cv2.imwrite('mask-resized.png', mask_resized)
         text_lines = [(a.aabb.x // 2, a.aabb.y // 2, a.aabb.w // 2, a.aabb.h // 2) for a in textlines]
         mask_ccs, cc2textline_assignment = filter_masks(mask_resized, text_lines)
         if mask_ccs :
