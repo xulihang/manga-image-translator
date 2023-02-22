@@ -56,7 +56,38 @@ def ocr_and_get_mask():
     result["mask"] = image_code
     os.remove(file_path)
     return result
+
+@route('/detect', method='POST')
+def detect():
+    save_path = "./uploaded/"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    timestamp=str(int(time.time()*1000))
     
+    upload = request.files.get('upload')   
+    name, ext = os.path.splitext(upload.filename)
+    print(ext.lower())
+    if ext.lower() not in ('.png','.jpg','.jpeg'):
+        return "File extension not allowed."            
+    savedName=timestamp+ext
+    file_path = "{path}/{file}".format(path=save_path, file=savedName)
+    if os.path.exists(file_path)==True:
+        os.remove(file_path)
+    upload.save(file_path)
+    img=cv2.imread(file_path)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_bbox = np.copy(img)
+    img_bbox = cv2.bilateralFilter(img_bbox, 17, 80, 80)
+    
+    textlines, mask = t.detect(img_rgb)
+    result = {}
+    text_lines = []
+    for line in textlines:
+        text_lines.append(textline_as_map(line))
+    result["text_lines"]=text_lines
+    os.remove(file_path)
+    return result
+
 @route('/ocr', method='POST')
 def ocr():
     save_path = "./uploaded/"
