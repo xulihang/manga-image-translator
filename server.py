@@ -154,6 +154,12 @@ def textline_as_map(textline):
     box["y2"] = int(points[2][1])
     box["x3"] = int(points[3][0])
     box["y3"] = int(points[3][1])
+    box["fg_r"] = textline.fg_r
+    box["fg_g"] = textline.fg_g
+    box["fg_b"] = textline.fg_b
+    box["bg_r"] = textline.bg_r
+    box["bg_g"] = textline.bg_g
+    box["bg_b"] = textline.bg_b
     return box
     
     
