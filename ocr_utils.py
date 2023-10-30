@@ -130,4 +130,25 @@ def merge_bboxes_text_region(bboxes: List[Quadrilateral]) :
         # yield overall bbox and sorted indices
         yield bbox, nodes, majority_dir, fg_r, fg_g, fg_b, bg_r, bg_g, bg_b
         
-            
+def get_mini_boxes(contour):
+    bounding_box = cv2.minAreaRect(contour)
+    points = sorted(list(cv2.boxPoints(bounding_box)), key=lambda x: x[0])
+    index_1, index_2, index_3, index_4 = 0, 1, 2, 3
+    if points[1][1] > points[0][1]:
+        index_1 = 0
+        index_4 = 1
+    else:
+        index_1 = 1
+        index_4 = 0
+    if points[3][1] > points[2][1]:
+        index_2 = 2
+        index_3 = 3
+    else:
+        index_2 = 3
+        index_3 = 2
+    box = [points[index_1], points[index_2], points[index_3], points[index_4]]
+    box = np.array(box)
+    startidx = box.sum(axis=1).argmin()
+    box = np.roll(box, 4 - startidx, 0)
+    box = np.array(box)
+    return box
