@@ -144,7 +144,8 @@ def complete_mask(img_np: np.ndarray, ccs: List[np.ndarray], text_lines: List[Tu
 		#cv2.imshow('cc before', image_resize(cc_region, width = 256))
 		img_region = np.ascontiguousarray(img_np[y1: y1 + h1, x1: x1 + w1])
 		#cv2.imshow('img', image_resize(img_region, width = 256))
-		cc_region = refine_mask(img_region, cc_region)
+		if len(cc_region)>0:
+			cc_region = refine_mask(img_region, cc_region)
 		#cv2.imshow('cc after', image_resize(cc_region, width = 256))
 		#cv2.waitKey(0)
 		cc[y1: y1 + h1, x1: x1 + w1] = cc_region
