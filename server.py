@@ -123,15 +123,24 @@ def ocr():
         
   
     skip_recognization = request.forms.get('skip_recognization')
-    print("skip_recognization")
-    print(skip_recognization)
+    skip_detection = request.forms.get('skip_detection')
+    print("skip_recognization: "+skip_recognization)
+    print("skip_detection: "+skip_detection)
     img=cv2.imread(file_path)
+    height,width = img.shape[:2]
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_bbox = np.copy(img)
     img_bbox = cv2.bilateralFilter(img_bbox, 17, 80, 80)
     
-    textlines, mask = t.detect(img_rgb)
-    if skip_recognization == False or skip_recognization== None or skip_recognization == "":
+    textlines = []
+    if skip_detection == "true":
+        print("use full image")
+        pts = np.array([[0,width], [width,0], [width,height], [0,height]])
+        textlines = [Quadrilateral(pts=pts,text="",prob=1.0)]
+    else:
+        textlines, mask = t.detect(img_rgb)
+        
+    if skip_recognization == None or skip_recognization == "":
         textlines = t.ocr(img, img_bbox,textlines)
 
     result = {}
