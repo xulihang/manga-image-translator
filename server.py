@@ -112,6 +112,7 @@ def ocr():
     
     upload = request.files.get('upload')   
     name, ext = os.path.splitext(upload.filename)
+    generate_mask = request.forms.get('generate_mask')
     print(ext.lower())
     if ext.lower() not in ('.png','.jpg','.jpeg'):
         return "File extension not allowed."            
@@ -124,14 +125,14 @@ def ocr():
   
     skip_recognization = request.forms.get('skip_recognization')
     skip_detection = request.forms.get('skip_detection')
-    print("skip_recognization: "+skip_recognization)
-    print("skip_detection: "+skip_detection)
+    #print("skip_recognization: "+skip_recognization)
+    #print("skip_detection: "+skip_detection)
     img=cv2.imread(file_path)
     height,width = img.shape[:2]
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_bbox = np.copy(img)
     img_bbox = cv2.bilateralFilter(img_bbox, 17, 80, 80)
-    
+    result = {}
     textlines = []
     if skip_detection == "true":
         print("use full image")
@@ -139,11 +140,20 @@ def ocr():
         textlines = [Quadrilateral(pts=pts,text="",prob=1.0)]
     else:
         textlines, mask = t.detect(img_rgb)
+        if generate_mask == "true":
+            print("generate mask")
+            mask_path = "{path}/{file}".format(path=save_path, file=savedName+"-mask.png")
+            mask = t.gen_mask(img_rgb, mask, textlines)
+            cv2.imwrite(mask_path, mask)
+            mask = convert_mask(mask_path)
+            png = cv2.imencode('.png',mask)[1]
+            image_code = str(base64.b64encode(png))[2:-1]
+            result["mask"] = image_code
+            os.remove(mask_path)
         
     if skip_recognization == None or skip_recognization == "":
         textlines = t.ocr(img, img_bbox,textlines)
 
-    result = {}
     boxes = []
     for line in textlines:
         boxes.append(textline_as_map(line))
