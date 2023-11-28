@@ -5,35 +5,35 @@ import cv2
 import functools
 
 def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
-    # initialize the dimensions of the image to be resized and
-    # grab the image size
-    dim = None
-    (h, w) = image.shape[:2]
+	# initialize the dimensions of the image to be resized and
+	# grab the image size
+	dim = None
+	(h, w) = image.shape[:2]
 
-    # if both the width and height are None, then return the
-    # original image
-    if width is None and height is None:
-        return image
+	# if both the width and height are None, then return the
+	# original image
+	if width is None and height is None:
+		return image
 
-    # check to see if the width is None
-    if width is None:
-        # calculate the ratio of the height and construct the
-        # dimensions
-        r = height / float(h)
-        dim = (int(w * r), height)
+	# check to see if the width is None
+	if width is None:
+		# calculate the ratio of the height and construct the
+		# dimensions
+		r = height / float(h)
+		dim = (int(w * r), height)
 
-    # otherwise, the height is None
-    else:
-        # calculate the ratio of the width and construct the
-        # dimensions
-        r = width / float(w)
-        dim = (width, int(h * r))
+	# otherwise, the height is None
+	else:
+		# calculate the ratio of the width and construct the
+		# dimensions
+		r = width / float(w)
+		dim = (width, int(h * r))
 
-    # resize the image
-    resized = cv2.resize(image, dim, interpolation = inter)
+	# resize the image
+	resized = cv2.resize(image, dim, interpolation = inter)
 
-    # return the resized image
-    return resized
+	# return the resized image
+	return resized
 
 class BBox(object) :
 	def __init__(self, x: int, y: int, w: int, h: int, text: str, prob: float, fg_r: int = 0, fg_g: int = 0, fg_b: int = 0, bg_r: int = 0, bg_g: int = 0, bg_b: int = 0) :
@@ -227,7 +227,7 @@ def rect_distance(x1, y1, x1b, y1b, x2, y2, x2b, y2b):
 		return y1 - y2b
 	elif top:
 		return y2 - y1b
-	else:             # rectangles intersect
+	else:			 # rectangles intersect
 		return 0
 
 def distance_point_point(a: np.ndarray, b: np.ndarray) -> float :
@@ -314,3 +314,20 @@ def findNextPowerOf2(n):
 		i += 1
 		n = n >> 1
 	return 1 << i
+	
+class AvgMeter():
+	def __init__(self):
+		self.reset()
+
+	def reset(self):
+		self.sum = 0
+		self.count = 0
+
+	def __call__(self, val = None):
+		if val is not None:
+			self.sum += val
+			self.count += 1
+		if self.count > 0:
+			return self.sum / self.count
+		else:
+			return 0

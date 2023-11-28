@@ -16,6 +16,7 @@ if os.path.exists("use_cuda"):
     t = Translator(use_cuda=True)
 else:
     t = Translator()
+t.use_ctc_model = False
 
 @route('/ocr_and_mask', method='POST')
 def ocr_and_get_mask():
@@ -113,6 +114,9 @@ def ocr():
     upload = request.files.get('upload')   
     name, ext = os.path.splitext(upload.filename)
     generate_mask = request.forms.get('generate_mask')
+    use_ctc = request.forms.get('use_ctc')
+    if use_ctc != None:
+        update_OCR_model(use_ctc)
     print(ext.lower())
     if ext.lower() not in ('.png','.jpg','.jpeg'):
         return "File extension not allowed."            
@@ -160,6 +164,14 @@ def ocr():
     result["boxes"]=boxes
     os.remove(file_path)
     return result
+
+def update_OCR_model(use_ctc):
+    if use_ctc == "true" and t.use_ctc_model == False:
+        t.use_ctc_model = True
+        t.dictionary = None
+    elif use_ctc == "false" and t.use_ctc_model == True:
+        t.use_ctc_model = False
+        t.dictionary = None
 
 def textline_as_map(textline):
     box = {}
