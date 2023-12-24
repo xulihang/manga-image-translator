@@ -3,6 +3,7 @@ from functools import reduce
 from DBNet_resnet34 import TextDetection
 from model_ocr import OCR
 from model_ocr_ctc import OCR as OCRCTC
+from model_ocr_48px import OCR as OCR48PX
 from inpainting_aot import AOTGenerator
 import einops
 import imgproc
@@ -22,6 +23,7 @@ class Translator():
         self.model_ocr = None
         self.model_detect = None
         self.model_inpainting = None
+        self.use_48px_model = False
         self.use_ctc_model = False
         self.use_cuda = use_cuda
         self.img_detect_size = img_detect_size
@@ -33,9 +35,22 @@ class Translator():
         
     def load_ocr_model(self):
         if self.dictionary == None:
-            with open('alphabet-all-v5.txt', 'r', encoding='utf-8') as fp :
-                self.dictionary = [s[:-1] for s in fp.readlines()]
-            if self.use_ctc_model == True:
+            if self.use_48px_model == True:
+                with open('alphabet-all-v7.txt', 'r', encoding='utf-8') as fp :
+                    self.dictionary = [s[:-1] for s in fp.readlines()]
+            else:
+                with open('alphabet-all-v5.txt', 'r', encoding='utf-8') as fp :
+                    self.dictionary = [s[:-1] for s in fp.readlines()]
+            
+            if self.use_48px_model == True:
+                model = OCR48PX(self.dictionary, 768)
+                sd = torch.load('ocr_ar_48px.ckpt')
+                model.load_state_dict(sd)
+                model.eval()
+                if self.use_cuda :
+                    model = model.cuda()
+                self.model_ocr = model
+            elif self.use_ctc_model == True:
                 model = OCRCTC(self.dictionary, 768)
                 sd = torch.load('ocr-ctc.ckpt', map_location = 'cpu')
                 sd = sd['model'] if 'model' in sd else sd
@@ -223,12 +238,91 @@ class Translator():
                 cur_region.bg_b = bb
                 out_regions.append(cur_region)
         return out_regions
+
+    def run_ocr_48px(self, img, quadrilaterals: List[Tuple[Quadrilateral, str]], dictionary, model, max_chunk_size = 2) :
+        text_height = 48
+        regions = [q.get_transformed_region(img, d, text_height) for q, d in quadrilaterals]
+        out_regions = []
+        perm = sorted(range(len(regions)), key = lambda x: regions[x].shape[1])
+        ix = 0
+        for indices in self.chunks(perm, max_chunk_size) :
+            N = len(indices)
+            widths = [regions[i].shape[1] for i in indices]
+            max_width = 4 * (max(widths) + 7) // 4
+            region = np.zeros((N, text_height, max_width, 3), dtype = np.uint8)
+            for i, idx in enumerate(indices) :
+                W = regions[idx].shape[1]
+                region[i, :, : W, :] = regions[idx]
+                #cv2.imwrite(f'ocrs/{ix}.png', region[i, :, :, :])
+                ix += 1
+            images = (torch.from_numpy(region).float() - 127.5) / 127.5
+            images = einops.rearrange(images, 'N H W C -> N C H W')
+            ret = self.ocr_infer_bacth(images, model, widths)
+            for i, (pred_chars_index, prob, fg_pred, bg_pred, fg_ind_pred, bg_ind_pred) in enumerate(ret):
+                if prob < 0.2:
+                    continue
+                has_fg = (fg_ind_pred[:, 1] > fg_ind_pred[:, 0])
+                has_bg = (bg_ind_pred[:, 1] > bg_ind_pred[:, 0])
+                seq = []
+                fr = AvgMeter()
+                fg = AvgMeter()
+                fb = AvgMeter()
+                br = AvgMeter()
+                bg = AvgMeter()
+                bb = AvgMeter()
+                for chid, c_fg, c_bg, h_fg, h_bg in zip(pred_chars_index, fg_pred, bg_pred, has_fg, has_bg) :
+                    ch = self.model_ocr.dictionary[chid]
+                    if ch == '<S>':
+                        continue
+                    if ch == '</S>':
+                        break
+                    if ch == '<SP>':
+                        ch = ' '
+                    seq.append(ch)
+                    if h_fg.item() :
+                        fr(int(c_fg[0] * 255))
+                        fg(int(c_fg[1] * 255))
+                        fb(int(c_fg[2] * 255))
+                    if h_bg.item() :
+                        br(int(c_bg[0] * 255))
+                        bg(int(c_bg[1] * 255))
+                        bb(int(c_bg[2] * 255))
+                    else :
+                        br(int(c_fg[0] * 255))
+                        bg(int(c_fg[1] * 255))
+                        bb(int(c_fg[2] * 255))
+                txt = ''.join(seq)
+                fr = min(max(int(fr()), 0), 255)
+                fg = min(max(int(fg()), 0), 255)
+                fb = min(max(int(fb()), 0), 255)
+                br = min(max(int(br()), 0), 255)
+                bg = min(max(int(bg()), 0), 255)
+                bb = min(max(int(bb()), 0), 255)
+                print(f'prob: {prob} {txt} fg: ({fr}, {fg}, {fb}) bg: ({br}, {bg}, {bb})')
+                cur_region = quadrilaterals[indices[i]][0]
+                if isinstance(cur_region, Quadrilateral):
+                    cur_region.text = txt
+                    cur_region.prob = prob
+                    cur_region.fg_r = fr
+                    cur_region.fg_g = fg
+                    cur_region.fg_b = fb
+                    cur_region.bg_r = br
+                    cur_region.bg_g = bg
+                    cur_region.bg_b = bb
+                else:
+                    cur_region.text.append(txt)
+                    cur_region.update_font_colors(np.array([fr, fg, fb]), np.array([br, bg, bb]))
+
+                out_regions.append(cur_region)
+        return out_regions
         
     def ocr_infer_bacth(self, img, model, widths) :
         if self.use_cuda :
             img = img.cuda()
         with torch.no_grad():
-            if self.use_ctc_model:
+            if self.use_48px_model == True:
+                return model.infer_beam_batch(img, widths, beams_k = 5, max_seq_length = 255)
+            elif self.use_ctc_model == True:
                 return model.decode(img, widths, 0, verbose = True)
             else:
                 return model.infer_beam_batch(img, widths, beams_k = 5, max_seq_length = 255)
@@ -239,7 +333,10 @@ class Translator():
         
     def ocr(self,img, img_bbox,textlines):
         self.load_ocr_model()
-        if self.use_ctc_model == True:
+        if self.use_48px_model == True:
+            print("use 48px")
+            textlines = self.run_ocr_48px(img_bbox, list(generate_text_direction(textlines)), self.dictionary, self.model_ocr, 16)
+        elif self.use_ctc_model == True:
             print("use ctc")
             textlines = self.run_ocr_ctc(img_bbox, list(generate_text_direction(textlines)), self.dictionary, self.model_ocr, 16)
         else:
