@@ -211,10 +211,10 @@ class Translator():
                 br = int(total_br())
                 bg = int(total_bg())
                 bb = int(total_bb())
-                print(logprob, txt, f'fg: ({fr}, {fg}, {fb})', f'bg: ({br}, {bg}, {bb})')
+                print(prob, txt, f'fg: ({fr}, {fg}, {fb})', f'bg: ({br}, {bg}, {bb})')
                 cur_region = quadrilaterals[indices[i]][0]
                 cur_region.text = txt
-                cur_region.prob = logprob
+                cur_region.prob = prob
                 cur_region.fg_r = fr
                 cur_region.fg_g = fg
                 cur_region.fg_b = fb
