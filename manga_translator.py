@@ -348,19 +348,23 @@ class Translator():
         for (poly_regions, textline_indices, majority_dir, fg_r, fg_g, fg_b, bg_r, bg_g, bg_b) in merge_bboxes_text_region(textlines) :
             text = ''
             logprob_lengths = []
-            for textline_idx in textline_indices :
-                if not text :
-                    text = textlines[textline_idx].text
-                else :
-                    last_ch = text[-1]
-                    cur_ch = textlines[textline_idx].text[0]
-                    if ord(last_ch) > 255 and ord(cur_ch) > 255 :
-                        text += textlines[textline_idx].text
+            for textline_idx in textline_indices:
+                try:
+                    if not text :
+                        text = textlines[textline_idx].text
                     else :
-                        if last_ch == '-' and ord(cur_ch) < 255 :
-                            text = text[:-1] + textlines[textline_idx].text
+                        last_ch = text[-1]
+                        cur_ch = textlines[textline_idx].text[0]
+                        if ord(last_ch) > 255 and ord(cur_ch) > 255 :
+                            text += textlines[textline_idx].text
                         else :
-                            text += ' ' + textlines[textline_idx].text
+                            if last_ch == '-' and ord(cur_ch) < 255 :
+                                text = text[:-1] + textlines[textline_idx].text
+                            else :
+                                text += ' ' + textlines[textline_idx].text
+                except Exception as e:
+                    print(e)
+                
                 logprob_lengths.append((np.log(textlines[textline_idx].prob), len(textlines[textline_idx].text)))
             vc = count_valuable_text(text)
             total_logprobs = 0.0
