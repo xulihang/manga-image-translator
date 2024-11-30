@@ -18,4 +18,4 @@ Test pages:
 To use GPU for inference, you need to do the following:
 
 1. Install a Pytorch version with GPU support according to [this](https://pytorch.org/get-started/locally/#start-locally).
-2. Create a new file named `use_cuda` in the root of the project to enable CUDA.
+2. Create a new file named `use_cuda` in the root of the project to enable CUDA or `use_mps` to enable the GPU for Mac.
