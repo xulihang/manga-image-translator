@@ -14,6 +14,8 @@ from utils import Quadrilateral
 
 if os.path.exists("use_cuda"):
     t = Translator(use_cuda=True)
+elif os.path.exists("use_mps"):
+    t = Translator(use_mps=True)
 else:
     t = Translator()
 t.use_ctc_model = False

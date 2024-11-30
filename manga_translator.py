@@ -18,7 +18,7 @@ from ocr_utils import count_valuable_text, generate_text_direction, merge_bboxes
 
 class Translator():
 
-    def __init__(self, use_cuda=False,img_detect_size=1536,unclip_ratio=2.2,box_threshold=0.7,text_threshold=0.5, inpainting_size=2048):
+    def __init__(self, use_cuda=False,use_mps=False,img_detect_size=1536,unclip_ratio=2.2,box_threshold=0.7,text_threshold=0.5, inpainting_size=2048):
         self.dictionary = None
         self.model_ocr = None
         self.model_detect = None
@@ -26,6 +26,7 @@ class Translator():
         self.use_48px_model = False
         self.use_ctc_model = False
         self.use_cuda = use_cuda
+        self.use_mps = use_mps
         self.img_detect_size = img_detect_size
         self.unclip_ratio = unclip_ratio
         self.box_threshold = box_threshold
@@ -49,6 +50,8 @@ class Translator():
                 model.eval()
                 if self.use_cuda :
                     model = model.cuda()
+                elif self.use_mps:
+                    model = model.to('mps')
                 self.model_ocr = model
             elif self.use_ctc_model == True:
                 model = OCRCTC(self.dictionary, 768)
@@ -61,6 +64,8 @@ class Translator():
                 model.eval()
                 if self.use_cuda :
                     model = model.cuda()
+                elif self.use_mps:
+                    model = model.to('mps')
                 self.model_ocr = model
             else:
                 model = OCR(self.dictionary, 768)
@@ -68,6 +73,8 @@ class Translator():
                 model.eval()
                 if self.use_cuda :
                     model = model.cuda()
+                elif self.use_mps:
+                    model = model.to('mps')
                 self.model_ocr = model
 
 
@@ -77,8 +84,10 @@ class Translator():
             sd = torch.load('detect.ckpt', map_location='cpu')
             model.load_state_dict(sd['model'] if 'model' in sd else sd)
             model.eval()
-            if self.use_cuda :
+            if self.use_cuda:
                 model = model.cuda()
+            elif self.use_mps:
+                model = model.to('mps')
             self.model_detect = model
 
     def load_inpainting_model(self):
@@ -87,8 +96,10 @@ class Translator():
             sd = torch.load('inpainting.ckpt', map_location='cpu')
             model.load_state_dict(sd['gen'] if 'gen' in sd else sd)
             model.eval()
-            if self.use_cuda :
+            if self.use_cuda:
                 model = model.cuda()
+            elif self.use_mps:
+                model = model.to('mps')
             self.model_inpainting = model
         
     def detect(self,img):
@@ -99,6 +110,8 @@ class Translator():
         img = torch.from_numpy(img_np_resized)
         if self.use_cuda :
             img = img.cuda()
+        elif self.use_mps:
+            img = img.to('mps')
         img = einops.rearrange(img, 'h w c -> 1 c h w')
         with torch.no_grad():
             db, mask = self.model_detect(img)
@@ -319,6 +332,8 @@ class Translator():
     def ocr_infer_bacth(self, img, model, widths) :
         if self.use_cuda :
             img = img.cuda()
+        elif self.use_mps:
+            img = img.to('mps')
         with torch.no_grad():
             if self.use_48px_model == True:
                 return model.infer_beam_batch(img, widths, beams_k = 5, max_seq_length = 255)
@@ -442,6 +457,9 @@ class Translator():
         if self.use_cuda :
             img_torch = img_torch.cuda()
             mask_torch = mask_torch.cuda()
+        elif self.use_mps:
+            img_torch = img_torch.to('mps')
+            mask_torch = mask_torch.to('mps')
         with torch.no_grad() :
             img_torch *= (1 - mask_torch)
             img_inpainted_torch = model_inpainting(img_torch, mask_torch)

@@ -5,3 +5,5 @@ __pycache__
 ocrs
 uploaded
 Python
+use_cuda
+use_mps
