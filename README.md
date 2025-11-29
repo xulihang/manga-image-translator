@@ -8,7 +8,7 @@ Installation:
 4. Download the model files into the project's folder: [detect.ckpt
 ](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.2.1/detect.ckpt), [ocr.ckpt](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.2.1/ocr.ckpt), [inpainting.ckpt](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.2.1/inpainting.ckpt)
 5. Download and unzip the OCR CTC model into the same folder: [ocr-ctc.zip](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/ocr-ctc.zip). This OCR model supports Korean while the OCR model in the previous step only supports English, Chinese and Japanese. Its speed is also higher.
-6. Download the [OCR 48px model](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/ocr_ar_48px.ckpt) and its [dictionary](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/alphabet-all-v7.txt) into the same folder. This OCR model has a higher accuracy but requires GPU.
+6. Download the [OCR 48px model](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/ocr_ar_48px.ckpt) and its [dictionary](https://github.com/zyddnys/manga-image-translator/releases/download/beta-0.3/alphabet-all-v7.txt) into the same folder. This OCR model has a higher accuracy.
 7. Run the server: `python server.py`
 
 
